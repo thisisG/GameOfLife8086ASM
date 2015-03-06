@@ -17,6 +17,7 @@
 ;-- EQU and = equates
 LF equ 0Dh
 CR equ 0Ah
+DEF_PX_COLOUR equ 02d;
 
 ;-- Error codes
 
@@ -185,7 +186,7 @@ computeNextGeneration:
                     jmp innerCyclePx;
 
                 resurrectPx:
-                    mov byte ptr DS:[DI], 01d;
+                    mov byte ptr DS:[DI], DEF_PX_COLOUR;
                     jmp innerCyclePx;
 
                 killPx:
@@ -267,7 +268,7 @@ enterVgaMode:
 setupLoop:
 
     ;;;;;;
-    ; First we want to clear the video memory and the videBuffer - that is
+    ; First we want to clear the video memory and the videoBuffer - that is
     ; setting all values to zero to ensure proper operation.
     ;;;;;;
 
@@ -277,55 +278,44 @@ setupLoop:
         mov byte ptr videoBuffer[BX], 0d;
         mov byte ptr ES:[BX], 0d; Clear ES+BX
         inc BX; Counter = Counter + 1
-        cmp BX, 064000d;
+        cmp BX, 064001d;
         jne clearBuffer
 
-    mov CX, 0550d;
-    mov BX, 0d;
-
     setInitialScreen:
-        add BX, 02d;
-        mov byte ptr ES:[BX], 01d;
-        dec CX;
-        cmp CX, 0d;
-        jne setInitialScreen;
-
-    mov ah,00
-    int 16h
 
         ; Setup linear gun!
-        mov byte ptr ES:[100d*320d+150d+0d], 01d;
-        mov byte ptr ES:[100d*320d+150d+1d], 01d;
-        mov byte ptr ES:[100d*320d+150d+2d], 01d;
-        mov byte ptr ES:[100d*320d+150d+3d], 01d;
-        mov byte ptr ES:[100d*320d+150d+4d], 01d;
-        mov byte ptr ES:[100d*320d+150d+5d], 01d;
-        mov byte ptr ES:[100d*320d+150d+6d], 01d;
-        mov byte ptr ES:[100d*320d+150d+7d], 01d;
+        mov byte ptr ES:[100d*320d+150d+0d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+1d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+2d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+3d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+4d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+5d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+6d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+7d], DEF_PX_COLOUR;
 
-        mov byte ptr ES:[100d*320d+150d+9d], 01d;
-        mov byte ptr ES:[100d*320d+150d+010d], 01d;
-        mov byte ptr ES:[100d*320d+150d+011d], 01d;
-        mov byte ptr ES:[100d*320d+150d+012d], 01d;
-        mov byte ptr ES:[100d*320d+150d+013d], 01d;
+        mov byte ptr ES:[100d*320d+150d+9d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+010d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+011d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+012d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+013d], DEF_PX_COLOUR;
 
-        mov byte ptr ES:[100d*320d+150d+17d], 01d;
-        mov byte ptr ES:[100d*320d+150d+18d], 01d;
-        mov byte ptr ES:[100d*320d+150d+19d], 01d;
+        mov byte ptr ES:[100d*320d+150d+17d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+18d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+19d], DEF_PX_COLOUR;
 
-        mov byte ptr ES:[100d*320d+150d+26d], 01d;
-        mov byte ptr ES:[100d*320d+150d+27d], 01d;
-        mov byte ptr ES:[100d*320d+150d+28d], 01d;
-        mov byte ptr ES:[100d*320d+150d+29d], 01d;
-        mov byte ptr ES:[100d*320d+150d+30d], 01d;
-        mov byte ptr ES:[100d*320d+150d+31d], 01d;
-        mov byte ptr ES:[100d*320d+150d+32d], 01d;
+        mov byte ptr ES:[100d*320d+150d+26d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+27d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+28d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+29d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+30d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+31d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+32d], DEF_PX_COLOUR;
 
-        mov byte ptr ES:[100d*320d+150d+34d], 01d;
-        mov byte ptr ES:[100d*320d+150d+35d], 01d;
-        mov byte ptr ES:[100d*320d+150d+36d], 01d;
-        mov byte ptr ES:[100d*320d+150d+37d], 01d;
-        mov byte ptr ES:[100d*320d+150d+38d], 01d;
+        mov byte ptr ES:[100d*320d+150d+34d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+35d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+36d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+37d], DEF_PX_COLOUR;
+        mov byte ptr ES:[100d*320d+150d+38d], DEF_PX_COLOUR;
 
     mov ah,00
     int 16h
