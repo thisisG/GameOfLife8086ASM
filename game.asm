@@ -23,10 +23,10 @@ DEF_PX_COLOUR equ 02d;
 
 ;-- Variable declarations
 .DATA
+
 ; Initialize the videoBuffer that we will use to compute the next state of the
 ; game of life before copying it to the video buffer.
 videoBuffer db 64000 dup(0);
-
 
 ;-- Extern variables
 
@@ -35,6 +35,20 @@ videoBuffer db 64000 dup(0);
 ;-- Program macros
 .CODE
 
+;-- Program subroutines
+
+;;;;;;
+; For each pixel that exist in the current video buffer located at
+; ES:((y*320)+x) we want to investigate it's neighbours and evaluate if the
+; cell should come alive or stay dead.
+; The cell in the buffer is updated to it's new state and will wait until
+; all cells have been evaluated before the buffer is copied to the video
+; buffer.
+; For ease in order to handle border cases we will count from (x,y) at 1,1
+; to 318,198. (Screen is 320,200 but since the counting is sensible we start
+; at 0 and end at 319/199 - want to exclude outermost pixels so hence the
+; 1,1 to 318,198 evaluated pixels)
+;;;;;;
 computeNextGeneration:
 
     ; Save the stack
@@ -45,23 +59,10 @@ computeNextGeneration:
     push DS;
     push DI;
 
-    ;;;;;;
-    ; For each pixel that exist in the current video buffer located at
-    ; ES:((y*320)+x) we want to investigate it's neighbours and evaluate if the
-    ; cell should come alive or stay dead.
-    ; The cell in the buffer is updated to it's new state and will wait until
-    ; all cells have been evaluated before the buffer is copied to the video
-    ; buffer.
-    ; For ease in order to handle border cases we will count from (x,y) at 1,1
-    ; to 318,198. (Screen is 320,200 but since the counting is sensible we start
-    ; at 0 and end at 319/199 - want to exclude outermost pixels so hence the
-    ; 1,1 to 318,198)
-    ;;;;;;
-
     ; Initiate counters in CX, DX and DI
     ; CX will keep track of the current y position
     ; DX will keep track of the current x position
-    ; DI will keep track of the linear offset from DS where videoBuffer is stored
+    ; DI will keep track of the linear offset from where videoBuffer is stored
     ; and the corresponding offset in the current video buffer in ES
 
     mov CX, 0d; y0 = 0
@@ -70,7 +71,7 @@ computeNextGeneration:
     mov AX, offset videoBuffer; Load base address of video buffer into AX
     mov DX, DS;
     add AX, DX;
-    mov DS, AX; Store the base address of video buffer in DS
+    mov DS, AX; Store the base address of videoBuffer in DS
 
     ; This loop will be used to increment the Y position
     outerCyclePx:
@@ -144,21 +145,21 @@ computeNextGeneration:
 
                 cmp byte ptr ES:[DI], 0d;
                 jz y_plus_one_x
-            inc AX; in not zero increment AX
+            inc AX; if not zero increment AX
 
             y_plus_one_x:
                 inc DI; 320(y+1) + (x)
 
                 cmp byte ptr ES:[DI], 0d;
                 jz y_plus_one_x_plus_one
-            inc AX;
+            inc AX; if not zero increment AX
 
             y_plus_one_x_plus_one:
                 inc DI; 320(y+1) + (x+1)
 
                 cmp byte ptr ES:[DI], 0d;
                 jz evaluatePixel
-            inc AX;
+            inc AX; if not zero increment AX
 
             evaluatePixel:
                 sub DI, 0320d; 320(y) + (x+1)
@@ -171,14 +172,16 @@ computeNextGeneration:
                 ; Dead cell with exactly three live neighbours -> lives
 
                 cmp byte ptr ES:[DI], 0d; Check if current cell is alive
-                jz evaluateDead
+                jz evaluateDead; If 0 evaluate pixel as dead
 
                 ; If not dead evaluate as living.
-                cmp AX, 02d;
-                jl killPx; jump if less than 2
-                cmp AX, 03d;
-                jle resurrectPx; jump if less or equal to 3
-                jmp killPx; if above two conditions are not met the cell dies
+                evaluateLiving:
+                    cmp AX, 02d;
+                    jl killPx; jump if less than 2
+
+                    cmp AX, 03d;
+                    jle resurrectPx; jump if less or equal to 3
+                    jmp killPx; if above two conditions are not met the cell dies
 
                 evaluateDead:
                     cmp AX, 03d;
@@ -193,32 +196,9 @@ computeNextGeneration:
                     mov byte ptr DS:[DI], 0d;
                     jmp innerCyclePx;
 
-
-
 endComputeNextGeneration:
 
-    ; Store registers we want to use for string copy on the stack
-    push DI;
-    push SI;
-
-    ; ES already stores the address for the screen buffer, so we can use this
-    ; here without modification.
-    mov DI, 0d;
-    mov SI, 0d;
-
-    ; The address of videoBuffer is already stored in DS, so we can use this for
-    ; the string move operation.
-
-    mov CX, 64000d; Set the number of operations we want to perform
-    cld; Clear the direction flag for string operations using rep movsb
-
-    ; Call ES:[DI] = DS:[SI] CX number of times using movsb, copying the data
-    ; in the videoBuffer to the video memory.
-    rep MOVSB;
-
-    ; Retreive the registers stored before string copy
-    pop SI;
-    pop DI;
+    call copyBufferToScreen;
 
     ; Retrieve the stack
     pop DI;
@@ -230,7 +210,38 @@ endComputeNextGeneration:
 
 ret;
 
-;-- Program subroutines
+;;;;;;
+;
+;;;;;;
+
+copyBufferToScreen:
+
+    push AX;
+    push DX;
+    push DI;
+    push SI;
+
+    ; ES already stores the address for the screen buffer, so we can use this
+    ; here without modification.
+    ; The address of videoBuffer is already stored in DS, so we can use this for
+    ; the string move operation.
+
+    mov DI, 0d;
+    mov SI, 0d;
+
+    mov CX, 64000d; Set the number of operations we want to perform
+    cld; Clear the direction flag for string operations using rep movsb
+
+    ; Call ES:[DI] = DS:[SI] CX number of times using movsb, copying the data
+    ; in the videoBuffer to the video memory.
+    rep MOVSB;
+
+    pop SI;
+    pop DI;
+    pop DX;
+    pop AX;
+
+ret;
 
 
 ;-- Program code
