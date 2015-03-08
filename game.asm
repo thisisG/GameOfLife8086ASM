@@ -1,13 +1,10 @@
 ; Game of life (Possibly)
 ; Ref: http://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
 ; Rules are simple:
-; Any live cell with fewer than two live neighbours dies, as if caused by
-; under-population.
-; Any live cell with two or three live neighbours lives on to the next
-; generation.
-; Any live cell with more than three live neighbours dies, as if by overcrowding.
-; Any dead cell with exactly three live neighbours becomes a live cell, as if by
-; reproduction.
+; Any live cell with fewer than two live neighbours dies
+; Any live cell with two or three live neighbours lives on
+; Any live cell with more than three live neighbours dies
+; Any dead cell with exactly three live neighbours becomes a live cell
 .MODEL compact
 .STACK 256
 
@@ -15,8 +12,8 @@
 
 
 ;-- EQU and = equates
-LF equ 0Dh
-CR equ 0Ah
+LF equ 0Dh;
+CR equ 0Ah;
 DEF_PX_COLOUR equ 02d;
 
 ;-- Error codes
@@ -27,6 +24,16 @@ DEF_PX_COLOUR equ 02d;
 ; Initialize the videoBuffer that we will use to compute the next state of the
 ; game of life before copying it to the video buffer.
 videoBuffer db 64000 dup(0);
+
+; Variables for putting pixels on to the screen using the putPixelArrayToScreen
+; routine after loading the arrays with a putPattern routine.
+xPixelArray dw 64 dup(0);
+yPixelArray dw 64 dup(0);
+pixelArrayCounter dw 0;
+
+; Variables for use as input for putPattern routines.
+x0Value dw 0;
+y0Value dw 0;
 
 ;-- Extern variables
 
@@ -50,7 +57,6 @@ videoBuffer db 64000 dup(0);
 ; 1,1 to 318,198 evaluated pixels)
 ;;;;;;
 computeNextGeneration:
-
     ; Save the stack
     push AX;
     push BX;
@@ -109,28 +115,28 @@ computeNextGeneration:
             y_min_one_x_min_one:
                 cmp byte ptr ES:[DI], 0d; current screen memory == 1 at x-1,y-1?
                 jz y_min_one_x;
-            inc AX; if not zero increment AX
+                    inc AX; if not zero increment AX
 
             y_min_one_x:
                 inc DI; 320(y-1) + (x)
 
                 cmp byte ptr ES:[DI], 0d; current screen memory == 1 at x,y-1?
                 jz y_min_one_x_plus_one;
-            inc AX; if not zero increment AX
+                    inc AX; if not zero increment AX
 
             y_min_one_x_plus_one:
                 inc DI; 320(y-1) + (x+1)
 
                 cmp byte ptr ES:[DI], 0d; current screen memory == 1 at x+1,y-1?
                 jz y_x_plus_one
-            inc AX; if not zero increment AX
+                    inc AX; if not zero increment AX
 
             y_x_plus_one:
                 add DI, 0320d; 320(y) + (x+1)
 
                 cmp byte ptr ES:[DI], 0d; current screen memory == 1 at x+1,y?
                 jz y_x_min_one
-            inc AX; if not zero increment AX
+                    inc AX; if not zero increment AX
 
             y_x_min_one:
                 dec DI; 320(y) + (x)
@@ -138,53 +144,53 @@ computeNextGeneration:
 
                 cmp byte ptr ES:[DI], 0d;
                 jz y_plus_one_x_min_one
-            inc AX; if not zero increment AX
+                    inc AX; if not zero increment AX
 
             y_plus_one_x_min_one:
                 add DI, 0320d; 320(y+1) + (x-1)
 
                 cmp byte ptr ES:[DI], 0d;
                 jz y_plus_one_x
-            inc AX; if not zero increment AX
+                    inc AX; if not zero increment AX
 
             y_plus_one_x:
                 inc DI; 320(y+1) + (x)
 
                 cmp byte ptr ES:[DI], 0d;
                 jz y_plus_one_x_plus_one
-            inc AX; if not zero increment AX
+                    inc AX; if not zero increment AX
 
             y_plus_one_x_plus_one:
                 inc DI; 320(y+1) + (x+1)
 
                 cmp byte ptr ES:[DI], 0d;
                 jz evaluatePixel
-            inc AX; if not zero increment AX
+                    inc AX; if not zero increment AX
 
             evaluatePixel:
                 sub DI, 0320d; 320(y) + (x+1)
                 dec DI; 320(y) + (x)
 
                 ; Remember the rules:
-                ; Live cell with fewer than two live nighbours -> dies
-                ; Live cell with two or three live neighbours -> lives
-                ; Live cell with more than three live neighbours -> dies
-                ; Dead cell with exactly three live neighbours -> lives
+                ; 1 - Live cell with fewer than two live nighbours -> dies
+                ; 2 - Live cell with two or three live neighbours -> lives
+                ; 3 - Live cell with more than three live neighbours -> dies
+                ; 4 - Dead cell with exactly three live neighbours -> lives
 
                 cmp byte ptr ES:[DI], 0d; Check if current cell is alive
                 jz evaluateDead; If 0 evaluate pixel as dead
 
                 ; If not dead evaluate as living.
                 evaluateLiving:
-                    cmp AX, 02d;
+                    cmp AX, 02d; Rule 1
                     jl killPx; jump if less than 2
 
-                    cmp AX, 03d;
+                    cmp AX, 03d; Rule 2
                     jle resurrectPx; jump if less or equal to 3
                     jmp killPx; if above two conditions are not met the cell dies
 
                 evaluateDead:
-                    cmp AX, 03d;
+                    cmp AX, 03d; Rule 4
                     je resurrectPx;
                     jmp innerCyclePx;
 
@@ -197,7 +203,6 @@ computeNextGeneration:
                     jmp innerCyclePx;
 
 endComputeNextGeneration:
-
     call copyBufferToScreen;
 
     ; Retrieve the stack
@@ -211,13 +216,14 @@ endComputeNextGeneration:
 ret;
 
 ;;;;;;
-;
+; Use the rep MOVSB instruction to copy the contents of the videoBuffer into the
+; video memory.
+; Before this routine is called ES shall contain the address of the video memory
+; and DS shall contain the address of the videoBuffer array.
 ;;;;;;
-
 copyBufferToScreen:
 
-    push AX;
-    push DX;
+    push CX;
     push DI;
     push SI;
 
@@ -238,8 +244,134 @@ copyBufferToScreen:
 
     pop SI;
     pop DI;
+    pop CX;
+
+ret;
+
+
+;;;;;;
+; For each x,y pair contained in yPixelArray[] and xPixelArray[] we want to bring
+; the cell at the locations alive.
+; The arrays will be filled by other routines with the number of pairs being
+; contained in pixelArrayCounter.
+; The routine shall bring cells to life from BX = 0 and run until the breakpoint
+; at BX = pixelArrayCounter is reached.
+;;;;;;
+putPixelArrayToScreen:
+    push AX;
+    push BX;
+    push DX;
+
+    mov BX, 0;
+
+    putPixelLoop:
+        cmp BX, pixelArrayCounter; Check if are done
+        jg putPixelExit
+
+        mov AX, 0320d;
+        mov DX, yPixelArray[BX];
+        mul DX; AX = 320*y
+        mov DX, xPixelArray[BX];
+        add AX, DX; AX = 320*y + x
+
+        push BX; Save counter
+
+        mov BX, AX; BX = 320*y + x
+        mov byte ptr ES:[BX], DEF_PX_COLOUR; Set pixel at (x,y)
+
+        pop BX; Restore counter
+
+        inc BX; Increment counter
+        inc BX;
+        jmp putPixelLoop
+
+putPixelExit:
     pop DX;
+    pop BX;
     pop AX;
+
+ret;
+
+
+;;;;;;
+; Pattern:
+;    x0
+; y0 - X - - - - -
+;    - - - X - - -
+;    X X - - X X X
+; Inputs:
+;   x0Value
+;   y0Value
+; Outputs:
+;   yPixelArray[]
+;   xPixelArray[]
+;   pixelArrayCounter
+;;;;;;
+putAcornPattern:
+    push BX;
+    push CX;
+    push DX;
+
+    mov BX, 0d; This is our counter for the PixelArrays
+
+    mov CX, x0Value;
+    mov DX, y0Value;
+
+    ; First pixel at (x0+1, y0)
+    mov xPixelArray[BX], CX;
+    mov yPixelArray[BX], DX;
+    add xPixelArray[BX], 01d;
+
+    ; Second pixel at (x0+3, y0+1)
+    inc BX;
+    inc BX;
+    mov xPixelArray[BX], CX;
+    mov yPixelArray[BX], DX;
+    add xPixelArray[BX], 03d;
+    add yPixelArray[BX], 01d;
+
+    ; Third pixel at (x0, y0+2)
+    inc BX;
+    inc BX;
+    add DX, 02d; DX = y0 + 2, Will use this y-value for all remaining pixels
+    mov xPixelArray[BX], CX;
+    mov yPixelArray[BX], DX;
+
+    ; Fourth pixel at (x0+1, y0+2)
+    inc BX;
+    inc BX;
+    inc CX; CX = x0+1;
+    mov xPixelArray[BX], CX;
+    mov yPixelArray[BX], DX;
+
+    ; Fifth pixel at (x0+4, y0+2)
+    inc BX;
+    inc BX;
+    inc CX; CX = x0+2
+    inc CX; CX = x0+3
+    inc CX; CX = x0+4
+    mov xPixelArray[BX], CX;
+    mov yPixelArray[BX], DX;
+
+    ; Sixth pixel at (x0+5, y0+2)
+    inc BX;
+    inc BX;
+    inc CX; CX = x0+5
+    mov xPixelArray[BX], CX;
+    mov yPixelArray[BX], DX;
+
+    ; Seventh pixel at (x0+6, y0+2)
+    inc BX;
+    inc BX;
+    inc CX; CX = x0+6
+    mov xPixelArray[BX], CX;
+    mov yPixelArray[BX], DX;
+
+    mov pixelArrayCounter, BX; Store the counter
+
+    pop DX;
+    pop CX;
+    pop BX;
 
 ret;
 
@@ -294,39 +426,16 @@ setupLoop:
 
     setInitialScreen:
 
-        ; Setup linear gun!
-        mov byte ptr ES:[100d*320d+150d+0d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+1d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+2d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+3d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+4d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+5d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+6d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+7d], DEF_PX_COLOUR;
+    ; Want to put an acorn at the middle of the screen
+    ; It is 7 x 3 pixels big so we want
+    ; x0 = ((320/2) - 7/2) - 1 = 156.5 - 1 ~= 156
+    ; y0 = ((200/2) - 3/2) - 1 = 98
+    mov x0Value, 0156d;
+    mov y0Value, 098d;
 
-        mov byte ptr ES:[100d*320d+150d+9d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+010d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+011d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+012d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+013d], DEF_PX_COLOUR;
+    call putAcornPattern
 
-        mov byte ptr ES:[100d*320d+150d+17d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+18d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+19d], DEF_PX_COLOUR;
-
-        mov byte ptr ES:[100d*320d+150d+26d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+27d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+28d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+29d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+30d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+31d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+32d], DEF_PX_COLOUR;
-
-        mov byte ptr ES:[100d*320d+150d+34d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+35d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+36d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+37d], DEF_PX_COLOUR;
-        mov byte ptr ES:[100d*320d+150d+38d], DEF_PX_COLOUR;
+    call putPixelArrayToScreen
 
     mov ah,00
     int 16h
